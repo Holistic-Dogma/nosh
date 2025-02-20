@@ -131,7 +131,6 @@ class Freebooter {
     const _exists = await this.dirExists(dir)
     if (!_exists) return []
     const files = (await $`find "${this.expandDir(dir)}" -type f`.text()).split(/\n+/).filter(f => /\w/.test(f))
-    console.log('allFilesInDir', files)
     return neo(files).flatten
   }
 
@@ -149,10 +148,9 @@ class Freebooter {
 
   // may be replaceable by fsrouting - see bun docs on asset routing
   async staticFiles(dir) {return await this.allFilesInPath(dir ?? 'public')}
-
+  // load static routes (public folders)
   async staticRouting() {
     const _flattened = await this.staticFiles()
-    console.log('Static files', _flattened)
     this.logger.data({ static: _flattened.array }).info('static.files')
     this.#routes.static = _flattened.reduce(async (acc, file) => {
       console.log('Static file', file)
@@ -172,39 +170,28 @@ class Freebooter {
     return this.#routes.static
   }
 
-
+  // load named routes from an api file exporting { routes }
   async namedRouting() {
     pragma.logger.trace('boot.sequence.namedroutes.load.start')
-    const _namedroutes = await this.appPathFor('named', 'paths')
-    const _neoroutes = []
+    const _namedroutes = await this.appPathFor('named', 'paths'), _routes = []
     for (const path of _namedroutes) {
-      if (!/\.[tj]sx?$/.test(path)) continue
-      const _exists = await this.fileExists(path)
-      if (!_exists) this.logger.data({ path }).warn('named.route.missing')
-      else _neoroutes.push(path)
+      pragma.logger.trace('named.route.load.attempt', { path })
+      try { const _ = await import(path).then(({ routes }) => routes); _routes.push(_) }
+      catch (error) { pragma.logger.warn('boot.sequence.namedroutes.load.error', { error }) }
     }
-    if (_neoroutes.length === 0) return []
-    const _routes = await _neoroutes.map(async (path) => await import(path).then(({ routes }) => routes))
-    console.log('Named routes', _routes)
-    pragma.logger.data({ namedroutes: _routes }).trace('boot.sequence.namedroutes.load.end')
-    this.#routes.defined = await Promise.allSettled(_routes).then((results) => results.map((r) => r.value)).catch(e => [])
-    this.#routes.defined = this.#routes.defined.filter(r => r)
+    this.#routes.defined = _routes.filter(r=>r)
+    if (this.#routes.defined.length === 0) { pragma.logger.trace('named.routes.no.items.found.early.exit');  return [] }
+    pragma.logger.trace('boot.sequence.namedroutes.loaded', { ct: this.#routes.defined.length, routes: this.#routes.defined })
     return this.#routes.defined
   }
+
   get routes() { return  {...this.#routes } }
 
   async loadAllRoutes() {
     this.logger.trace('boot.sequence.routes.load.start')
     const appExists = await this.dirExists(this.pathToApp)
-    console.log('appExists', appExists, this.pathToApp)
     if (!appExists) await this.discoverFilesystemIfNotSet()
-    const _this = this
-    const result = await Promise.allSettled([
-      this.pageRouting(),
-      await this.staticRouting(),
-      await this.initFSWatch(),
-      await this.namedRouting()
-    ]).catch(this.logger.error)
+    const result = await Promise.allSettled([ this.pageRouting(), await this.staticRouting(), await this.initFSWatch(), await this.namedRouting() ]).catch(this.logger.error)
     this.logger.data({ result }).trace('boot.sequence.routes.load.end')
   }
 }

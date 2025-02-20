@@ -25,19 +25,19 @@ class BunServer {
   constructor(configdata) {
     this.#config = configdata
     this.#bunconfig = new Freebooter(configdata)
-    this.logger.trace('[BOOT] BunServer setup complete')
+    this.trace('boot.initialize.completed')
   }
 
   get pathToRepo() { return this.#bunconfig.pathToRepo }
   get pathToApp() { return this.#config.appRoot ?? this.#bunconfig.pathToApp }
   get config() { return this.#bunconfig.config }
   get logger() { return this.#bunconfig.logger }
-
+  trace(text, ...args) { try { this.logger.trace(`freebooter.server.${text}`, ...args) } catch (e) { console.log(`freebooter.server.${text}`, ...args) } }
   async preloadService() {
-    console.log('[BOOT] Preloading service')
+    this.trace('boot.preload.begin')
     await $`cd ${this.pathToApp}`
     await this.#bunconfig.loadAllRoutes()
-    console.log('[BOOT] Service preloaded')
+    this.trace('boot.preload.end')
     return this
   }
 
@@ -45,7 +45,7 @@ class BunServer {
     this.loadStarterware()
     const mw = Object.keys(this.#config.middleware).filter(name => Middleware[name])
     mw.forEach(name => {
-      this.logger.info(`Loaded middleware [${name}]`)
+      this.trace('loaded.middleware', {name})
       this.#middleware.push(Middleware[name])
     })
   }
@@ -53,21 +53,29 @@ class BunServer {
   loadStarterware() {
     const mw = Object.keys(this.#config.middleware).filter(name => Starterware[name])
     mw.forEach(name => {
-      this.logger.info(`Loaded starterware [${name}]`)
+      this.trace('loaded.starterware', {name})
       Starterware[name](this, this.#config.middleware[name])
     })
   }
 
   apiRouteFor(path) {
-    if (!path || !Array.isArray(this.#bunconfig.routes.defined) || this.#bunconfig.routes.defined.length === 0) return undefined
-    console.log(this.#bunconfig.routes.defined)
-    this.logger.data({ path }).trace('api.route.search')
-    const defined = this.#bunconfig.routes.defined?.map(path => path.split('/'))
+    const { defined } = this.#bunconfig.routes
+    if (!path || !Array.isArray(defined) || defined.length === 0) return undefined
+    this.trace('defined.routes', { defined })
+    const _defined = defined.map((args) => {
+      if (Array.isArray(args)) args = args[0]
+      args.tokens = (args.path ?? '').split('/').filter(r => r.length) // remove initial or ending /
+      return args
+    })
     // reverse interpolate - find routes whose static components match their :prefixed components and have the same number of arguments.
-    const path_parts = path.split('/')
-    const possible_paths = defined.filter(route => route.length === path_parts.length && route.every((part, idx) => part.startsWith(':') || part === path_parts[idx]))
-    if (possible_paths.length === 0) return undefined
-    return possible_paths[0]
+    const parts = path.split('/').filter(r => r.length)
+    // iterate over _defined until a path matches
+    for (let apiroute of _defined) {
+      const { tokens } = apiroute
+      // match all routes on static segments. future improvements: support optionals, extensions, and glob routes.
+      if (tokens.every((part, idx) => part.startsWith(':') || part == parts[idx])) return apiroute
+    }
+    return undefined
   }
 
   get pagerouter() { return this.#bunconfig.routes.pages }
@@ -112,7 +120,9 @@ class BunServer {
         if (page_result) return page_result
         const api_route = this.apiRouteFor(pathname) // these can probably go into statics
         if (!api_route) return new Response('Not Found', { status: 404 })
-        return await handleApiRequest(req, api_route)
+        const response = await handleApiRequest(req, api_route)
+        if (response instanceof Response) return response
+        return new Response(JSON.stringify(response), { status: 200, headers: { 'Content-Type': 'application/json' } })
       }
     })
   }

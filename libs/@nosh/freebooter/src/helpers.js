@@ -20,23 +20,58 @@ class NeoRequest {
   #request = {}
   #headers = {}
   #body = {}
-  constructor(req) {
+  #url = {}
+  matching_path = ''
+  constructor(req, match_path = '') {
     this.#request = (req instanceof NeoRequest) ? req.originalRequest : req
     this.#headers = Object.fromEntries(this.#request.headers.entries())
     this.#body = (typeof this.#request.body === 'object') ? this.#request.body : (typeof this.#request.json === 'function') ? this.#request.json() : {}
+    this.#url = NeoRequest.getURLComponents(this.#request.url)
+    this.matching_path = match_path
   }
   get originalRequest() { return this.#request }
   get headers() { return this.#headers }
-  get params() { return this.#request.params }
-  get query() { return this.#request.query }
+  get params() {
+    if (!this.matching_path) return this.#url.params
+    const tokens = this.matching_path.split('/').filter(r => r.length)
+    const pathtokens = this.uri.path.split('/').filter(r => r.length)
+    const retval = {}
+    if (tokens.length !== pathtokens.length) return
+    tokens.forEach((token, idx) => {
+      if (token.startsWith(':')) retval[token.replace(':', '')] = pathtokens[idx]
+    })
+    return retval
+  }
+  get query() {
+    const { querystring } = this.uri
+    if (!querystring) return {}
+    const response = {}
+    const tokens = querystring.replace(/^\?/, '').split('&')
+    tokens.forEach(token => {
+      const [name, val] = token.split('=')
+      if (/\[\]$/.match(name)) {
+        // remove the [] from the name
+        const name = name.replace(/([\[\]])+$/, '')
+        response[name] ??= []
+        response[name].push(val)
+      } else response[name] = val
+    })
+    return response
+  }
   get cookies() { return this.#request.cookies }
   get body() { return this.#body }
   get json() { return this.#request.json }
   get url() { return this.#request.url }
   get method() { return this.#request.method }
-  get uri() { return O_O.fn.dissectUrl(this.url) }
-  get path() { return this.uri.pathname }
-  get host() { return this.uri.host }
+  get uri() { return this.#url }
+  get path() { return this.uri.path }
+  get host() { return this.uri.domain }
+  get port() { return this.uri.port }
+  get hash() { return this.uri.hash }
+  get querystring() { return this.uri.querystring }
+  get domain() { return this.uri.domain }
+  get tld() { return this.uri.tld }
+  get subdomain() { return this.uri.subdomain }
   get ip() { return this.#request.connection.remoteAddress }
   get protocol() { return this.#request.protocol }
   get secure() { return this.protocol === 'https' }
@@ -49,6 +84,12 @@ class NeoRequest {
   get acceptCharset() { return this.headers['accept-charset'] }
   get acceptType() { return this.headers['accept-type'] }
   get auth() { return this.headers.authorization }
+  static getURLComponents(urlstring) {
+    const { groups } = urlstring.match(
+      /^(?<protocol>\w+)\:\/+(?<subdomain>[\w\-]+)*\.?(?<domain>[\w\-]+)\.?(?<tld>[^\:\/\?\#]+)*(?:\:(?<port>\d+)?)?(?<path>\/[^\?\#]+)*(?<querystring>\?[^\#]+)?(?<hash>\#.+)?$/
+    )
+    return groups
+  }
 }
 
 const test = (val) => (val !== null && val !== undefined && val !== '')
@@ -142,20 +183,25 @@ class ResponseBuilder {
 // ['client-id', 'user-id', 'session-id'] // assumes an exist check on multisource
 const PreflightLocations = ['params', 'query', 'body', 'headers', 'cookies', 'identifiers', 'multisource']
 const preflightChecks = (req, preflights, idents) => {
-  if (!Array.isArray(preflights[0])) preflights = [preflights]
   const validator = { success: true, errors: [], preflights: {} }
-  for (keys of preflights) {
+  if (!preflights || !Array.isArray(preflights)) return validator
+  if (!Array.isArray(preflights[0])) preflights = [preflights] // ensure a nested array
+  // iterate through each array of preflights
+  preflights.forEach(keys => {
     var location = null
-    if (keys[0] === 'exists') keys.shift() // this is the only test we're doing atm
-    if (PreflightLocations.includes(keys[0])) location = keys.shift()
-    let keyval = undefined
-    for (key of keys) {
-      keyval = ((!!location) ? req[location]?.[key] : idents[key]) ?? multisource(req, key)
-      if (!keyval) validator.errors.push({ location, key, message: 'key not found' })
-      validator.preflights[key] = keyval
+    if (keys[0] === 'exists') {
+      // test for existence; this is the only test we're doing for now.
+      // add validity or luhn-style tests later.
+      keys.shift()
+      if (PreflightLocations.includes(keys[0])) location = keys.shift()
+      keys.forEach(key => {
+        const keyval = ((!!location) ? req[location]?.[key] : idents[key]) ?? multisource(req, key)
+        if (!keyval) validator.errors.push({ location, key, message: 'key not found' })
+        validator.preflights[key] = keyval
+      })
     }
-  }
-  if (validator.errors.length > 0) validator.success = false
+  })
+  validator.success = !validator.errors.length
   return validator
 }
 
@@ -190,16 +236,15 @@ const createHelpers = async (req) => {
 }
 
 const handleApiRequest = async (request, requesthandlerdefintion) => {
-  const req = new NeoRequest(request)
+  const req = new NeoRequest(request, requesthandlerdefintion.path)
   console.log('[API] Handling API Request')
   // expand request, do preflights, log, call endpoint, validate response
   const helpers = await createHelpers(req)
-  const { handler, preflights, unauthenticated, withoutApiKey, bots, cors } = requesthandlerdefintion
+  const { handler, preflights, unauthenticated, noapikey, bots, cors } = requesthandlerdefintion
   if (cors && req.method === 'OPTIONS') return helpers.respond('ok')
   if (!cors && req.method === 'OPTIONS') return helpers.res.status(405).message('method not allowed').response
-  if (unauthenticated && helpers.identifiers.auth) return helpers.res.status(401).message('unauthenticated').response
-  if (!unauthenticated && !helpers.identifiers.auth) return helpers.res.status(401).message('unauthenticated').response
-  if (!withoutApiKey && !helpers.identifiers.apikey) return helpers.res.status(401).message('unauthenticated').response
+  if (!unauthenticated && !helpers.identifiers.auth) return helpers.res.status(401).message('unauthenticated request').response
+  if (!noapikey && !helpers.identifiers.apikey) return helpers.res.status(401).message('unauthenticated api request').response
   if (bots && isBot(req)) return helpers.res.status(403).message('forbidden').response
   const pfvalidator = preflightChecks(req, preflights, helpers.identifiers)
   if (!pfvalidator.success) return helpers.res.status(400).message('bad request').data(pfvalidator).response

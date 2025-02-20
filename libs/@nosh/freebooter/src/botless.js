@@ -92,10 +92,10 @@ const botMatches = (req) => {
   const ua = req.headers["User-Agent"] ?? "";
   return botmatchers.filter((k, v) => (v.test(ua) ? k : null)).compact; // type narray
 };
-
+const enlist = (...args)=> new pragma.NeoNumber(args)
 const isBot = (req) =>  botMatches(req).length > 0
 const unsafeRequestProbability = (req) => {
-  const uri = enlist(req.protocol, "://", req.get("host"), req.originalUrl).join;
+  const uri = enlist(req.protocol, "://", req.uri.host, req.originalUrl).join;
   const suspicious = enlist(suspect_uris.filter((k, v) => v.test(uri)).keys);
   // one match is suspicious, more is very suspect_uris
   return new NeoNumber(suspicious.length ** 2).sigmoid;
@@ -124,7 +124,7 @@ const randomErrorStatus = () => {
     },
 */
 const botless = (bunserver, request) => {
-  const config = bunserver.config.middleware.botless ?? { enabled: true, whitelisted: [], allowWithHeader: "", denyBadActors: "always", behavior: "standard" }
+  const config = { enabled: true, whitelisted: [], allowWithHeader: "", denyBadActors: "always", behavior: "standard", ...(bunserver.config.middleware.botless ?? {}) }
   const { enabled, whitelisted, allowWithHeader, denyBadActors, behavior } = config
   if ((whitelisted??[]).includes(request.headers['User-Agent'])) return 'next'
   if (!enabled) return 'next'
