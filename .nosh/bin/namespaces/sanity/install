@@ -9,7 +9,6 @@ __find_installer() {
   [[ -z "$(which $installer 2> /dev/null)" ]] && return 1
   return 0
 }
-
 NoshSysConfig="$Nosh_UsrDir/config/system.yml"
 WriteNewConfig=86 # No.
 [[ ! -f "$NoshSysConfig" ]] WriteNewConfig=0
@@ -38,6 +37,9 @@ if [[ $WriteNewConfig -eq 86 ]]; then
     __find_installer "emerge" && yq w -i "$NoshSysConfig" "system.installer" "emerge"
     __find_installer "apk" && yq w -i "$NoshSysConfig" "system.installer" "apk add"
     __find_installer "xbps" && yq w -i "$NoshSysConfig" "system.installer" "xbps-install"
+    __find_installer "pkg" && yq w -i "$NoshSysConfig" "system.installer" "pkg install"
+    [[ -z "$(yq r "$NoshSysConfig" "system.installer")" ]] && scrawl error nosh.install.installer "No installers found for linux. Exiting." && exit 1
+    InstallCommand="$(yq r "$NoshSysConfig" "system.installer")"
   fi
 fi
 [[ -z "$InstallCommand" ]] InstallCommand="$(yq r "$NoshSysConfig" "system.installer")"
