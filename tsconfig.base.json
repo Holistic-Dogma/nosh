@@ -4,18 +4,19 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "Node",
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowArbitraryExtensions": true,
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
     "jsx": "react-jsx",
     "baseUrl": "./",
     "paths": {
-      "bun": ["~/.bun/node_modules/bun"], // This needs to be updated to local bun.
-      "@nosh/*": ["libs/@nosh/*"],
-      "@nosh/compact": ["libs/@nosh/compact"]
+      "@nosh/*": ["libs/@nosh/*"]
     }
   }
 }

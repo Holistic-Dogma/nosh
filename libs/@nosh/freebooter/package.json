@@ -1,5 +1,5 @@
 {
-  "name": "freebooter",
+  "name": "@nosh/freebooter",
   "description": "A bun.sh bootloader with bot matching and parameter validation.",
   "main": "index.js",
   "type": "module",

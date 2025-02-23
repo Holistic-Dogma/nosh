@@ -37,17 +37,17 @@ const botmatchers = new NeoObject({
   dude_in_basement: /Custom-AsyncHttpClient/,
   palo_alto_networks: /scaninfo/,
   vikingposters: /SM-T\d+\s*Build\/KOT/,
-  obvious_chinaposters: /zh\-CN/i,
-  obvious_russiaposters: /ru\-RU/i,
+  chinaposters: /zh\-CN/i,
+  russiaposters: /ru\-RU/i,
   practice_pyscrape_elsewhere: /python\-requests/,
   edgelords: /Edg\/\d+/,
   wow_no_thanks: /WOW64/,
   chinese_hack_factory: /Infinix\s*X\w+\s*Build/,
-  hurr_durr_huehue: /hu\;\s*rv/,
+  hueposters: /hu\;\s*rv/,
   chinese_cyberattack: /[\x00 - \x08\x0E - \x1F\x7F]/,
   chinese_cyberattack2: /[\x80 - \xFF]/,
-  peoples_liberation_army: /^[\x16][\x03][\x01 ]/,
-  yuropoors: /[\xC0-\xFF]/i,
+  peoples_liberation_army: /^[\x16][\x03][\x01]/,
+  strange_characters: /[\xC0-\xFF]/i,
 })
 
 
@@ -75,17 +75,17 @@ const suspect_uris = new NeoObject({
 
 const error_code_pairs = new NeoObject({
   payment_required: 402,
-  slow_the_fuck_down: 420,
-  back_to_the_shortbus: 406,
+  slow_down_bro: 420,
+  short_shrift: 406,
   this_is_war: 409,
   you_win___psych: 410,
-  so_tiny: 411,
+  tiny_indeed: 411,
   i_expected_better: 417,
   you_have_a_legally_recognized_disability: 451,
   its_on_fire: 218,
   too_hot_for_windows_98: 450,
-  gfy: 299,
-});
+  gfy: 299
+})
 
 
 const botMatches = (req) => {
@@ -95,15 +95,13 @@ const botMatches = (req) => {
 const enlist = (...args)=> new pragma.NeoNumber(args)
 const isBot = (req) =>  botMatches(req).length > 0
 const unsafeRequestProbability = (req) => {
-  const uri = enlist(req.protocol, "://", req.uri.host, req.originalUrl).join;
-  const suspicious = enlist(suspect_uris.filter((k, v) => v.test(uri)).keys);
+  const uri = enlist(req.protocol, "://", req.uri.host, req.originalUrl).join
+  const suspicious = enlist(suspect_uris.filter((k, v) => v.test(uri)).keys)
   // one match is suspicious, more is very suspect_uris
   return new NeoNumber(suspicious.length ** 2).sigmoid;
 };
 
-const blockUnsafe = (req) => {
-  return unsafeRequestProbability(req) > 0.05
-}
+const blockUnsafe = (req) => { return unsafeRequestProbability(req) > 0.05 }
 
 const randomErrorStatus = () => {
   const key = error_code_pairs.keys.random

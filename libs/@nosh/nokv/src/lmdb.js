@@ -1,5 +1,5 @@
-import { O_O } from 'unhelpfully'
-import { bruteForceRepoRoot } from 'freebooter'
+import { O_O } from '@nosh/unhelpfully'
+import { bruteForceRepoRoot } from '@nosh/freebooter'
 import lmdb from 'lmdb'
 const rootDir = await bruteForceRepoRoot()
 

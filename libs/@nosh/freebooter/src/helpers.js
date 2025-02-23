@@ -85,10 +85,11 @@ class NeoRequest {
   get acceptType() { return this.headers['accept-type'] }
   get auth() { return this.headers.authorization }
   static getURLComponents(urlstring) {
-    const { groups } = urlstring.match(
-      /^(?<protocol>\w+)\:\/+(?<subdomain>[\w\-]+)*\.?(?<domain>[\w\-]+)\.?(?<tld>[^\:\/\?\#]+)*(?:\:(?<port>\d+)?)?(?<path>\/[^\?\#]+)*(?<querystring>\?[^\#]+)?(?<hash>\#.+)?$/
+    const matches = urlstring.match(
+      /^(?<protocol>\w+)\:\/+(?:(?<subdomain>[\w\-]+)\.)?(?<domain>[\w\-]+)\.?(?<tld>[^\:\/\?\#]+)?(?:\:(?<port>\d+)?)?(?<path>\/[^\?\#]*)?(?<querystring>\?[^\#]+)?(?<hash>\#.+)?$/
     )
-    return groups
+    console.log(matches)
+    return matches?.groups
   }
 }
 

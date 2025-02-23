@@ -16,11 +16,11 @@
     "allowImportingTsExtensions": true,
     "typeRoots": ["node_modules/@types", "libs/types"],
     "paths": {
+      "@nosh/*": ["libs/@nosh/*"],
       "@app/*": ["app/*"],
       "@libs/*": ["libs/*"],
       "@tk/*": ["tk/*"],
-      "@data/*": ["data/*"],
-      "$g/*": ["app/graybin/*"]
+      "@data/*": ["data/*"]
     }
   }
 }

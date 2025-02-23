@@ -1,7 +1,7 @@
 import { NeoCore } from './core.js'
 import { NeoRange } from './range.js'
 import { NeoArray } from './array.js'
-import { O_O } from 'unhelpfully'
+import { O_O } from '@nosh/unhelpfully'
 
 
 const Roman = 'IVXLCDMↁↂↇↈ'

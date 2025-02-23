@@ -1,5 +1,5 @@
 // string case switcher
-import { O_O } from 'unhelpfully'
+import { O_O } from '@nosh/unhelpfully'
 import { NeoString } from './string.js'
 
 const Case = O_O.fn.obj

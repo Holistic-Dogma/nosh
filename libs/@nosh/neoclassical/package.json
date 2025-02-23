@@ -1,12 +1,11 @@
 {
-  "name": "neoclassical",
+  "name": "@nosh/neoclassical",
   "description": "A toolkit of common utilities for javascript.",
   "main": "index.js",
   "type": "module",
   "version": "0.0.1",
   "dependencies": {
     "uuid": "^8.3.2",
-    "base-64": "^1.0.0",
-    "unhelpfully": "workspace:libs/@nosh/unhelpfully@*"
-  }
+    "base-64": "^1.0.0"
+  },
 }

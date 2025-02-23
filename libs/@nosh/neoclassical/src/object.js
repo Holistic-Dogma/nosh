@@ -1,4 +1,3 @@
-import { O_O } from '@nosh/unhelpfully'
 import { NeoCore } from "./core.js";
 import { NeoArray } from "./array.js";
 class NeoObject extends NeoCore {
