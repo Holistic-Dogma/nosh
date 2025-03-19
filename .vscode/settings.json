@@ -18,5 +18,6 @@
     "comments": false,
     "strings": false
   },
-  "fixJson.indentationSpaces": 2
+  "fixJson.indentationSpaces": 2,
+  "workbench.colorTheme": "Ayu Mirage"
 }

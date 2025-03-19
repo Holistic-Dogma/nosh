@@ -225,7 +225,12 @@ const createHelpers = async (req) => {
   const retval = {
     req,
     _nosh: await findNoshBin(req),
-    nosh: async (cmd) => await $`${retval._nosh ?? 'nosh'} ${cmd}`.then(r => { return { text: r.text(), logout: r.stderr } }).catch(errors => ({ errors })),
+    nosh: async (cmd) => {
+      const noshcmd = retval._nosh ?? 'nosh'
+      const ret = await $`${noshcmd} ${cmd}`.catch(errors => ({ errors }))
+      if (ret.errors) return { text: '', logout: ret.errors }
+      return { text: ret.text(), logout: ret.stderr }
+    },
     identifiers,
     multisource: O_O.fn.curry(multisource, req),
     log: pragma.logger.withRequest(req).withRequestId(identifiers.request),

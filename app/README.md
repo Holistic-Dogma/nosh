@@ -60,3 +60,4 @@ You can see this configured in the etc/app.json for the sample app.
 
 ## Running the app
 From the nosh repo root, run `./launch.sh MYAPP` to run the app in folder MYAPP.
+The launch script currently has personal as the default app, so running `./launch.sh` will run the personal app.

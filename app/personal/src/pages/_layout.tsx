@@ -20,4 +20,3 @@ const Layout = (args: Record<string, string | React.JSX.Element>) => {
 }
 
 export default Layout
-

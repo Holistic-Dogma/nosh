@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 
 const TheUnconquerable = () => {
   return (
-    <div class="fader">
+    <div className="fader">
       <h3>The Unconquerable</h3>
       <p>welcome</p>
       <p>to the unconquerable pragma</p>
@@ -17,7 +17,7 @@ const TheUnconquerable = () => {
 
 const TheIndomitable = () => {
   return (
-    <div class="fader" align="right">
+    <div className="fader" align="right">
     <h3>The Indomitable</h3>
       <p>this is the end of millenia</p>
       <p>the end of time</p>
@@ -48,7 +48,6 @@ export default function Home() {
       <TheIndomitable />
       <TheUnconquerable />
       <TheIndomitable />
-      
     </div>
   )
 
